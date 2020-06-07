@@ -5287,45 +5287,34 @@ function MultiStreamsMixer(arrayOfMediaStreams, elementClass) {
         return video;
     }
 
-    this.appendStreams = function(streams) {
-        if (!streams) {
-            throw 'First parameter is required.';
+    this.appendStreams = function (streams) {
+    if (!streams) {
+        throw 'First parameter is required.';
+    }
+
+    if (!(streams instanceof Array)) {
+        streams = [streams];
+    }
+
+    arrayOfMediaStreams.concat(streams);
+    streams.forEach(stream => {
+        if (stream.getTracks().filter(function (t) {
+            return t.kind === 'video';
+        }).length) {
+            var video = getVideo(stream);
+            video.stream = stream;
+            videos.push(video);
         }
 
-        if (!(streams instanceof Array)) {
-            streams = [streams];
+        if (stream.getTracks().filter(function (t) {
+            return t.kind === 'audio';
+        }).length && this.audioContext) {
+            var audioSource = this.audioContext.createMediaStreamSource(stream);
+            audioSource.connect(this.audioDestination);
+            self.audioSources.push(audioSource);
         }
-
-        streams.forEach(function(stream) {
-            var newStream = new MediaStream();
-
-            if (stream.getTracks().filter(function(t) {
-                    return t.kind === 'video';
-                }).length) {
-                var video = getVideo(stream);
-                video.stream = stream;
-                videos.push(video);
-
-                newStream.addTrack(stream.getTracks().filter(function(t) {
-                    return t.kind === 'video';
-                })[0]);
-            }
-
-            if (stream.getTracks().filter(function(t) {
-                    return t.kind === 'audio';
-                }).length) {
-                var audioSource = self.audioContext.createMediaStreamSource(stream);
-                self.audioDestination = self.audioContext.createMediaStreamDestination();
-                audioSource.connect(self.audioDestination);
-
-                newStream.addTrack(self.audioDestination.stream.getTracks().filter(function(t) {
-                    return t.kind === 'audio';
-                })[0]);
-            }
-
-            arrayOfMediaStreams.push(newStream);
-        });
-    };
+    });
+};
 
     this.releaseStreams = function() {
         videos = [];
